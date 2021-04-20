@@ -3,41 +3,15 @@ from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_sc
 import numpy as np
 
 
-def calculate_model_score(y_true, y_pred, metric):
+def calculate_model_score(y_true, y_pred):
     metric_dict = {'accuracy': accuracy_score(y_true, y_pred), 'f1': f1_score(y_true, y_pred, pos_label=1),
                    'f1_micro': f1_score(y_true, y_pred, average='micro'),
                    'f1_macro': f1_score(y_true, y_pred, average='macro'),
                    'precision': precision_score(y_true, y_pred), 'recall': recall_score(y_true, y_pred),
                    'roc_auc': roc_auc_score(y_true, y_pred)}
-    model_score = metric_dict[metric]
-    return model_score
+    return metric_dict
 
 
-def calculate_multiple_model_scores(y_true, y_pred, metric_list):
-    metric_dict = {'accuracy': accuracy_score(y_true, y_pred), 'f1': f1_score(y_true, y_pred, pos_label=1),
-                   'f1_micro': f1_score(y_true, y_pred, average='micro'),
-                   'f1_macro': f1_score(y_true, y_pred, average='macro'),
-                   'precision': precision_score(y_true, y_pred), 'recall': recall_score(y_true, y_pred),
-                   'roc_auc': roc_auc_score(y_true, y_pred)}
-    model_scores = {}
-    for metric in metric_list:
-        model_scores[metric] = metric_dict[metric]
-    return model_scores
-
-
-def metric_per_contamination_level(y_true, model_predictions, metric='f1'):
-    columns_ = ['model', 'contamination_level', metric]
-    model_stats_df = pd.DataFrame(columns=columns_)
-
-    i = 0
-    for model_name, predictions in model_predictions.items():
-        for contamination_level, cont_predictions in predictions.items():
-            score = calculate_model_score(y_true, cont_predictions, metric=metric)
-            model_stats_df.loc[i] = [model_name, contamination_level, score]
-
-            i += 1
-
-    return model_stats_df
 
 
 def calc_model_performance_over_time(X_test_df, y_test,
@@ -60,15 +34,6 @@ def calc_model_performance_over_time(X_test_df, y_test,
             model_scores_dict[scoring][contamination_level][model_name] = model_scores
     return model_scores_dict
 
-def calc_average_score(y_test, y_preds, scoring = 'f1'):
-    all_model_scores = []
-    for y_pred in y_preds:
-        model_score = calculate_model_score(y_test.astype('int'), y_pred, scoring)
-        all_model_scores.append(model_score)
-
-    avg = np.mean(all_model_scores)
-
-    return avg
 
 
 def calc_average_score_and_std_per_timestep(X_test_df, y_test, y_preds, aggregated_timestamp_column='time_step', scoring= 'f1'):
