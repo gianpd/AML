@@ -64,7 +64,7 @@ def import_and_clean_elliptic_data():
 
 def combine_dataframes(df_classes, df_features, only_labeled=True):
     df_combined = pd.merge(df_features, df_classes, left_on='id', right_on='txId', how='left')
-    if only_labeled == True:
+    if only_labeled:
         df_combined = df_combined[df_combined['class'] != 2].reset_index(drop=True)
     df_combined.drop(columns=['txId'], inplace=True)
     return df_combined
@@ -82,7 +82,7 @@ def load_elliptic_data(only_labeled=True, drop_node_id=True):
     df_classes = rename_classes(df_classes)
     df_combined = combine_dataframes(df_classes, df_features, only_labeled)
 
-    if drop_node_id == True:
+    if drop_node_id:
         X = df_combined.drop(columns=['id', 'class'])
     else:
         X = df_combined.drop(columns='class')

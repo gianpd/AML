@@ -3,14 +3,13 @@ from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_sc
 import numpy as np
 
 
-def calculate_model_score(y_true, y_pred):
+def calculate_model_score(y_true, y_pred, metric):
     metric_dict = {'accuracy': accuracy_score(y_true, y_pred), 'f1': f1_score(y_true, y_pred, pos_label=1),
                    'f1_micro': f1_score(y_true, y_pred, average='micro'),
                    'f1_macro': f1_score(y_true, y_pred, average='macro'),
                    'precision': precision_score(y_true, y_pred), 'recall': recall_score(y_true, y_pred),
                    'roc_auc': roc_auc_score(y_true, y_pred)}
-    return metric_dict
-
+    return metric_dict[metric]
 
 
 
@@ -36,21 +35,17 @@ def calc_model_performance_over_time(X_test_df, y_test,
 
 
 
-def calc_average_score_and_std_per_timestep(X_test_df, y_test, y_preds, aggregated_timestamp_column='time_step', scoring= 'f1'):
+def calc_score_and_std_per_timestep(X_test_df, y_test, y_pred, aggregated_timestamp_column='time_step', metric= 'f1'):
     last_train_time_step = min(X_test_df['time_step']) - 1
     last_time_step = max(X_test_df['time_step'])
-    all_model_scores = []
-    for y_pred in y_preds:
-        model_scores = []
-        for time_step in range(last_train_time_step + 1, last_time_step + 1):
-            time_step_idx = np.flatnonzero(X_test_df[aggregated_timestamp_column] == time_step)
-            y_true_ts = y_test.iloc[time_step_idx]
-            y_pred_ts = [y_pred[i] for i in time_step_idx]
-            model_scores.append(calculate_model_score(y_true_ts.astype('int'), y_pred_ts, scoring))
-        all_model_scores.append(model_scores)
+    model_scores = []
+    for time_step in range(last_train_time_step + 1, last_time_step + 1):
+        time_step_idx = np.flatnonzero(X_test_df[aggregated_timestamp_column] == time_step)
+        y_true_ts = y_test.iloc[time_step_idx]
+        y_pred_ts = [y_pred[i] for i in time_step_idx]
+        model_scores.append(calculate_model_score(y_true_ts.astype('int'), y_pred_ts, metric))
 
-    score_points = len(all_model_scores[0])
-    avg_f1 = np.array([np.mean([f1_scores[i] for f1_scores in all_model_scores]) for i in range(score_points)])
-    std = np.array([np.std([f1_scores[i] for f1_scores in all_model_scores]) for i in range(score_points)])
+    avg_f1 = np.array([np.mean(model_scores)])
+    std = np.array([np.std(model_scores)])
 
     return avg_f1, std

@@ -1,0 +1,102 @@
+import pathlib
+
+from time import time
+
+from typing import Optional, Union, List, Callable
+
+import pandas as pd
+import numpy as np
+
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# supervised baseline
+from xgboost import XGBClassifier
+import lightgbm as lgb
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+
+# visualization
+import scikitplot as skplt
+
+# feature/model selection
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from sklearn.pipeline import Pipeline, FeatureUnion
+from sklearn.model_selection import cross_validate
+
+# Fine Tuning
+import flaml
+from flaml import AutoML
+
+
+class Supervised:
+
+    def __init__(self, model: str, task: str, X_train, y_train, config: Optional[dict] = None, X_val=None, y_val=None):
+        self._model = model
+        self._task = task
+        self._config = config
+        self.X_train = X_train
+        self.y_train = y_train
+        self.X_val = X_val
+        self.y_val = y_val
+        self._clf = None
+        self._cv = None  # k cross-validation
+
+    def _validate_data(self):
+        pass
+
+
+    def _train_cv(self):
+        scoring = ['f1', 'f1_micro']
+        score = cross_validate(self._clf, self.X_train, self.y_train, cv=self._cv, scoring=scoring)
+        return score
+
+    def train_cv(self, cv=5):
+
+        start = time()
+
+        self._cv = cv
+
+        if self._model == 'rf':
+            if self._task in ('binary', 'multiclass'):
+                self._clf = RandomForestClassifier()
+            else:
+                raise ValueError('regression task not yet implemented.')
+        elif self._model == 'lgbm':
+            if self._task in ('binary', 'multiclass'):
+                self._clf = lgb.sklearn.LGBMClassifier()
+            else:
+                raise ValueError('regression task not yet implemented.')
+        elif self._model == 'lr':
+            if self._task in ('binary', 'multiclass'):
+                self._clf = LogisticRegression(max_iter=10000)
+            else:
+                raise ValueError('regression task not yet implemented.')
+        elif self._model == 'xgboost':
+            if self._task in ('binary', 'multiclass'):
+                self._clf = XGBClassifier()
+            else:
+                raise ValueError('regression task not yet implemented.')
+        else:
+            raise ValueError(f'Classifier {self._model} not available.')
+
+        score = self._train_cv()
+        elapsed = time() - start
+        print(f'{self._model} train cv elapsed time: {elapsed}')
+        return score
+
+    def predict(self, X_test):
+
+        if hasattr(self._clf, 'predict'):
+            self._clf.fit(self.X_train, self.y_train)
+            y_pred = self._clf.predict(X_test)
+            return y_pred
+        else:
+            raise ValueError('Not classifier provided.')
+
+
+class AutoTuning(Supervised):
+
+    def __init__(self):
+        pass
