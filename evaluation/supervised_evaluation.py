@@ -25,12 +25,18 @@ for k, v in clf_with_score_dict.items():
     clf = Supervised(model=k,
                      task='binary',
                      X_train=X_train,
-                     y_train=y_train)
+                     y_train=y_train,
+                     class_weight='balanced')
     clf_with_score_dict[k]['clf'] = clf
     clf_with_score_dict[k]['score'] = clf.train_cv(cv=5)
     print(f'scores: {clf_with_score_dict[k]["score"]}')
+    print(f'avg test_f1: {np.mean(clf_with_score_dict[k]["score"]["test_f1"])}')
+    print(f'avg test_f1_micro: {np.mean(clf_with_score_dict[k]["score"]["test_f1_micro"])}')
 
 for k in clf_with_score_dict.keys():
     pred = clf_with_score_dict[k]['clf'].predict(X_test)
+    f1 = calculate_model_score(y_test, pred, 'f1')
     f1_micro = calculate_model_score(y_test, pred, 'f1_micro')
+    print(f'{k} - f1 test: {f1}')
     print(f'{k} - f1_micro test: {f1_micro}')
+
