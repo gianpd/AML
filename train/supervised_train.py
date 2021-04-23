@@ -4,11 +4,7 @@ from time import time
 
 from typing import Optional, Union, List, Callable
 
-import pandas as pd
 import numpy as np
-
-import seaborn as sns
-import matplotlib.pyplot as plt
 
 # supervised baseline
 from xgboost import XGBClassifier
@@ -27,15 +23,18 @@ from sklearn.decomposition import PCA
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.model_selection import cross_validate
 
-# Fine Tuning
-import flaml
-from flaml import AutoML
+import mlflow
+
+from evaluation.model_performance import *
 
 
 class Supervised:
 
     def __init__(self, model: str, task: str, X_train, y_train, config: Optional[dict] = None, X_val=None, y_val=None,
-                 class_weight=None):
+                 class_weight=None,
+                 seed=123):
+
+        np.random.seed(seed)
         self._model = model
         self._task = task
         self._config = config
@@ -52,15 +51,30 @@ class Supervised:
 
     def _train_cv(self):
         scoring = ['f1', 'f1_micro']
-        if self._class_weight:
-            weight = self.get_balanced_weights(self.y_train)
-            score = cross_validate(self._clf, self.X_train, self.y_train,
-                                   cv=self._cv, scoring=scoring, fit_params={'sample_weight': weight})
-        else:
-            score = cross_validate(self._clf, self.X_train, self.y_train,
-                                   cv=self._cv, scoring=scoring)
 
-        return score
+        mlflow.sklearn.autolog()
+        mlflow.set_experiment(f'TRAIN-{self._model}-Elliptic')
+        with mlflow.start_run():
+            if self._class_weight:
+                weight = self.get_balanced_weights(self.y_train)
+                score = cross_validate(self._clf, self.X_train, self.y_train,
+                                       cv=self._cv, scoring=scoring, fit_params={'sample_weight': weight})
+            else:
+                score = cross_validate(self._clf, self.X_train, self.y_train,
+                                       cv=self._cv, scoring=scoring)
+
+            avg_f1 = np.mean(score["test_f1"])
+            avg_f1_micro = np.mean(score["test_f1_micro"])
+            print(f'scores: {score}')
+            print(f'avg test_f1: {avg_f1}')
+            print(f'avg test_f1_micro: {avg_f1_micro}')
+            mlflow.log_metrics(
+                {
+                    "{}_train_avgF1".format(self._model):      avg_f1,
+                    "{}_train_avgF1Micro".format(self._model): avg_f1_micro,
+                }
+            )
+
 
     def train_cv(self, cv=5):
 
@@ -91,19 +105,34 @@ class Supervised:
         else:
             raise ValueError(f'Classifier {self._model} not available.')
 
-        score = self._train_cv()
+        self._train_cv()
         elapsed = time() - start
         print(f'{self._model} train cv elapsed time: {elapsed} [s]')
-        return score
 
-    def predict(self, X_test):
+    def evaluate(self):
 
+        if self.X_val is None and self.y_val is None:
+            print('Evaluation dataset not provided.')
+            pass
         if hasattr(self._clf, 'predict'):
-            self._clf.fit(self.X_train, self.y_train)
-            y_pred = self._clf.predict(X_test)
-            return y_pred
+            mlflow.sklearn.autolog()
+            mlflow.set_experiment(f'Evaluate-{self._model}-Elliptic')
+            with mlflow.start_run() as run:
+                self._clf.fit(self.X_train, self.y_train)
+                y_pred = self._clf.predict(self.X_val)
+                f1 = calculate_model_score(self.y_val, y_pred, 'f1')
+                f1_micro = calculate_model_score(self.y_val, y_pred, 'f1_micro')
+                print(f'{self._model} - f1 test: {f1}')
+                print(f'{self._model} - f1_micro test: {f1_micro}')
+
+                mlflow.log_metrics(
+                    {
+                        "{}_eval_F1".format(self._model):      f1,
+                        "{}_eval_F1Micro".format(self._model): f1_micro,
+                    }
+                )
         else:
-            raise ValueError('Not classifier provided.')
+            raise ValueError('classifier not provided.')
 
     def get_balanced_weights(self, labels):
         class_weight = compute_class_weight('balanced', classes=np.unique(labels), y=labels)
