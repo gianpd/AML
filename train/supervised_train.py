@@ -52,22 +52,20 @@ class Supervised:
     def _train_cv(self):
         scoring = ['f1', 'f1_micro']
 
-        mlflow.sklearn.autolog()
-        mlflow.set_experiment(f'TRAIN-{self._model}-Elliptic')
-        with mlflow.start_run():
-            if self._class_weight:
-                weight = self.get_balanced_weights(self.y_train)
-                score = cross_validate(self._clf, self.X_train, self.y_train,
-                                       cv=self._cv, scoring=scoring, fit_params={'sample_weight': weight})
-            else:
-                score = cross_validate(self._clf, self.X_train, self.y_train,
-                                       cv=self._cv, scoring=scoring)
+        if self._class_weight:
+            weight = self.get_balanced_weights(self.y_train)
+            score = cross_validate(self._clf, self.X_train, self.y_train,
+                                   cv=self._cv, scoring=scoring, fit_params={'sample_weight': weight})
+        else:
+            score = cross_validate(self._clf, self.X_train, self.y_train,
+                                   cv=self._cv, scoring=scoring)
 
-            avg_f1 = np.mean(score["test_f1"])
-            avg_f1_micro = np.mean(score["test_f1_micro"])
-            print(f'scores: {score}')
-            print(f'avg test_f1: {avg_f1}')
-            print(f'avg test_f1_micro: {avg_f1_micro}')
+        avg_f1 = np.mean(score["test_f1"])
+        avg_f1_micro = np.mean(score["test_f1_micro"])
+        print(f'scores: {score}')
+        print(f'avg test_f1: {avg_f1}')
+        print(f'avg test_f1_micro: {avg_f1_micro}')
+        if mlflow.active_run():
             mlflow.log_metrics(
                 {
                     "{}_train_avgF1".format(self._model):      avg_f1,
@@ -75,11 +73,9 @@ class Supervised:
                 }
             )
 
-
     def train_cv(self, cv=5):
 
         start = time()
-
         self._cv = cv
 
         if self._model == 'rf':
@@ -115,9 +111,26 @@ class Supervised:
             print('Evaluation dataset not provided.')
             pass
         if hasattr(self._clf, 'predict'):
-            mlflow.sklearn.autolog()
-            mlflow.set_experiment(f'Evaluate-{self._model}-Elliptic')
-            with mlflow.start_run() as run:
+            if mlflow.active_run():
+                self._clf.fit(self.X_train, self.y_train)
+                y_pred = self._clf.predict(self.X_val)
+                f1 = calculate_model_score(self.y_val, y_pred, 'f1')
+                f1_micro = calculate_model_score(self.y_val, y_pred, 'f1_micro')
+
+                params = self._clf.get_params()
+                for k, v in params.items():
+                    mlflow.log_params(
+                        {
+                            "{}_{}".format(self._model, k): v
+                        }
+                    )
+                mlflow.log_metrics(
+                    {
+                        "{}_eval_F1".format(self._model):      f1,
+                        "{}_eval_F1Micro".format(self._model): f1_micro,
+                    }
+                )
+            else:
                 self._clf.fit(self.X_train, self.y_train)
                 y_pred = self._clf.predict(self.X_val)
                 f1 = calculate_model_score(self.y_val, y_pred, 'f1')
@@ -125,12 +138,6 @@ class Supervised:
                 print(f'{self._model} - f1 test: {f1}')
                 print(f'{self._model} - f1_micro test: {f1_micro}')
 
-                mlflow.log_metrics(
-                    {
-                        "{}_eval_F1".format(self._model):      f1,
-                        "{}_eval_F1Micro".format(self._model): f1_micro,
-                    }
-                )
         else:
             raise ValueError('classifier not provided.')
 
