@@ -50,11 +50,12 @@ with mlflow.start_run() as run:
                 clf.train_cv()
                 y_pred = clf.evaluate()
                 y_prob = clf.predict_proba(X_test)[:, 1]
-                plot_confusion_matrix(y_test, y_pred, path=f'{PLOTS_ROOT}/{m}_confusion_matrix.png')
-                plot_precision_recall_roc(y_test, y_prob, path=f'{PLOTS_ROOT}/{m}')
-                mlflow.log_artifact(f'{PLOTS_ROOT}/{m}_confusion_matrix.png')
-                mlflow.log_artifact(f'{PLOTS_ROOT}/{m}_precision_recall.png')
-                mlflow.log_artifact(f'{PLOTS_ROOT}/{m}_roc.png')
+                c_weight = 1 if class_weight else 0
+                plot_confusion_matrix(y_test, y_pred, path=f'{PLOTS_ROOT}/{m}_{cv}_{c_weight}_confusion_matrix.png')
+                plot_precision_recall_roc(y_test, y_prob, path=f'{PLOTS_ROOT}/{m}_{cv}_{c_weight}')
+                mlflow.log_artifact(f'{PLOTS_ROOT}/{m}_{cv}_{c_weight}_confusion_matrix.png')
+                mlflow.log_artifact(f'{PLOTS_ROOT}/{m}_{cv}_{c_weight}_precision_recall.png')
+                mlflow.log_artifact(f'{PLOTS_ROOT}/{m}_{cv}_{c_weight}_roc.png')
 
 
 
