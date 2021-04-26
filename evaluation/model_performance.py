@@ -3,13 +3,14 @@ from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_sc
 import numpy as np
 
 
-def calculate_model_score(y_true, y_pred, metric):
+def calculate_model_score(y_true, y_pred, metric=None):
     metric_dict = {'accuracy': accuracy_score(y_true, y_pred), 'f1': f1_score(y_true, y_pred, pos_label=1),
                    'f1_micro': f1_score(y_true, y_pred, average='micro'),
                    'f1_macro': f1_score(y_true, y_pred, average='macro'),
-                   'precision': precision_score(y_true, y_pred), 'recall': recall_score(y_true, y_pred),
+                   'precision': precision_score(y_true, y_pred),
+                   'recall': recall_score(y_true, y_pred),
                    'roc_auc': roc_auc_score(y_true, y_pred)}
-    return metric_dict[metric]
+    return metric_dict[metric] if metric else metric_dict
 
 
 

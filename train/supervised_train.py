@@ -1,10 +1,8 @@
-import pathlib
+import os
+import sys
 
 from time import time
-
 from typing import Optional, Union, List, Callable
-
-import numpy as np
 
 # supervised baseline
 from xgboost import XGBClassifier
@@ -15,9 +13,6 @@ from sklearn.ensemble import RandomForestClassifier
 
 from sklearn.utils.class_weight import compute_class_weight
 
-# visualization
-import scikitplot as skplt
-
 # feature/model selection
 from sklearn.decomposition import PCA
 from sklearn.pipeline import Pipeline, FeatureUnion
@@ -27,10 +22,20 @@ import mlflow
 
 from evaluation.model_performance import *
 
+import logging
+logging.basicConfig(stream=sys.stdout, format='',
+                level=logging.INFO, datefmt=None)
+logger = logging.getLogger('supervised_train')
 
 class Supervised:
 
-    def __init__(self, model: str, task: str, X_train, y_train, config: Optional[dict] = None, X_val=None, y_val=None,
+    def __init__(self, model: str, task: str,
+                 X_train,
+                 y_train,
+                 config: Optional[dict] = None,
+                 X_val=None,
+                 y_val=None,
+                 num_cv=5,
                  class_weight=None,
                  seed=123):
 
@@ -43,13 +48,18 @@ class Supervised:
         self.X_val = X_val
         self.y_val = y_val
         self._clf = None
-        self._cv = None  # k cross-validation
+        self._cv = num_cv
         self._class_weight = class_weight
+
 
     def _validate_data(self):
         pass
 
+    def _preprocess(self, X):
+        return X
+
     def _train_cv(self):
+        log_index = '_train_cv>'
         scoring = ['f1', 'f1_micro']
 
         if self._class_weight:
@@ -60,23 +70,29 @@ class Supervised:
             score = cross_validate(self._clf, self.X_train, self.y_train,
                                    cv=self._cv, scoring=scoring)
 
-        avg_f1 = np.mean(score["test_f1"])
-        avg_f1_micro = np.mean(score["test_f1_micro"])
-        print(f'scores: {score}')
-        print(f'avg test_f1: {avg_f1}')
-        print(f'avg test_f1_micro: {avg_f1_micro}')
+        avg_f1_test = np.mean(score["test_f1"])
+        avg_f1_micro_test = np.mean(score["test_f1_micro"])
+        logger.info(f'avg test_f1: {avg_f1_test}')
+        logger.info(f'avg test_f1_micro: {avg_f1_micro_test}')
         if mlflow.active_run():
-            mlflow.log_metrics(
-                {
-                    "{}_train_avgF1".format(self._model):      avg_f1,
-                    "{}_train_avgF1Micro".format(self._model): avg_f1_micro,
-                }
-            )
+            logger.info(f'{log_index} - starting mlflow run ...')
+            with mlflow.start_run(nested=True) as child_run:
+                logger.info(f'run id: {child_run.info.run_id}')
+                mlflow.log_metrics(
+                    {
+                        "{}_test_avgF1".format(self._model):      avg_f1_test,
+                        "{}_test_avgF1Micro".format(self._model): avg_f1_micro_test,
+                    }
+                )
+                mlflow.log_params(score)
+                mlflow.log_params({'model':        self._model,
+                                   'cv':           self._cv,
+                                   'class_weight': self._class_weight,
+                                   })
 
-    def train_cv(self, cv=5):
+    def train_cv(self):
 
         start = time()
-        self._cv = cv
 
         if self._model == 'rf':
             if self._task in ('binary', 'multiclass'):
@@ -105,38 +121,77 @@ class Supervised:
         elapsed = time() - start
         print(f'{self._model} train cv elapsed time: {elapsed} [s]')
 
-    def evaluate(self):
 
+    def predict(self, X_test):
+        '''Predict label from features
+
+        Args:
+            X_test: A numpy array of featurized instances, shape n*m
+
+        Returns:
+            A numpy array of shape n*1.
+            Each element is the label for a instance
+        '''
+        if self._clf is not None:
+            X_test = self._preprocess(X_test)
+            return self._clf.predict(X_test)
+        else:
+            return np.ones(X_test.shape[0])
+
+    def predict_proba(self, X_test):
+        '''Predict the probability of each class from features
+
+        Only works for classification problems
+
+        Args:
+            model: An object of trained model with method predict_proba()
+            X_test: A numpy array of featurized instances, shape n*m
+
+        Returns:
+            A numpy array of shape n*c. c is the # classes
+            Each element at (i,j) is the probability for instance i to be in
+                class j
+        '''
+        if 'regression' in self._task:
+            raise ValueError('Regression tasks do not support predict_prob')
+        else:
+            X_test = self._preprocess(X_test)
+            return self._clf.predict_proba(X_test)
+
+    def evaluate(self):
+        log_index = 'evaluate>'
         if self.X_val is None and self.y_val is None:
             print('Evaluation dataset not provided.')
             pass
         if hasattr(self._clf, 'predict'):
+            self._clf.fit(self.X_train, self.y_train)
+            y_pred = self._clf.predict(self.X_val)
+            model_scores = calculate_model_score(self.y_val, y_pred)
             if mlflow.active_run():
-                self._clf.fit(self.X_train, self.y_train)
-                y_pred = self._clf.predict(self.X_val)
-                f1 = calculate_model_score(self.y_val, y_pred, 'f1')
-                f1_micro = calculate_model_score(self.y_val, y_pred, 'f1_micro')
-
-                params = self._clf.get_params()
-                for k, v in params.items():
+                with mlflow.start_run(nested=True) as child_run:
+                    logger.info(f'{log_index} - starting mlflow Tracking ...')
                     mlflow.log_params(
                         {
-                            "{}_{}".format(self._model, k): v
-                        }
-                    )
-                mlflow.log_metrics(
-                    {
-                        "{}_eval_F1".format(self._model):      f1,
-                        "{}_eval_F1Micro".format(self._model): f1_micro,
-                    }
-                )
+                            "{}_eval_accuracy".format(self._model):  model_scores['accuracy'],
+                            "{}_eval_f1".format(self._model):        model_scores['f1'],
+                            "{}_eval_microF1".format(self._model):   model_scores['f1_micro'],
+                            "{}_eval_macroF1".format(self._model):   model_scores['f1_macro'],
+                            "{}_eval_precision".format(self._model): model_scores['precision'],
+                            "{}_eval_recall".format(self._model):    model_scores['recall'],
+                            "{}_eval_rocAUC".format(self._model):    model_scores['roc_auc']
+                        })
+                    params = self._clf.get_params()
+                    for k, v in params.items():
+                        mlflow.log_params(
+                            {
+                                "{}_{}".format(self._model, k): v
+                            }
+                        )
             else:
-                self._clf.fit(self.X_train, self.y_train)
-                y_pred = self._clf.predict(self.X_val)
-                f1 = calculate_model_score(self.y_val, y_pred, 'f1')
-                f1_micro = calculate_model_score(self.y_val, y_pred, 'f1_micro')
-                print(f'{self._model} - f1 test: {f1}')
-                print(f'{self._model} - f1_micro test: {f1_micro}')
+                logger.info('no active mlflow run.')
+                logger.info(f'{self._model} - scores: {model_scores}')
+
+            return y_pred
 
         else:
             raise ValueError('classifier not provided.')

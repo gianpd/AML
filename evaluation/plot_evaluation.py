@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 from utils import *
 
-def plot_precision_recall_roc(y_test, y_prob):
+def plot_precision_recall_roc(y_test, y_prob, path=None):
 
     precision, recall, thresholds = precision_recall_curve(y_test, y_prob)
     f1_scores = 2 * recall * precision / (recall + precision)
@@ -28,14 +28,19 @@ def plot_precision_recall_roc(y_test, y_prob):
 
     probas = np.column_stack((1 - y_prob, y_prob))
     skplt.metrics.plot_precision_recall(y_test, probas)
-    plt.show()
-    skplt.metrics.plot_roc(y_test, probas)
-    plt.show()
+    if path is not None:
+        plt.savefig(f'{path}_precision_recall.png')
+        skplt.metrics.plot_roc(y_test, probas)
+        plt.savefig(f'{path}_roc.png')
+    else:
+        plt.show()
+        skplt.metrics.plot_roc(y_test, probas)
+        plt.show()
 
     return best_f1, best_threshold
 
 
-def plot_confusion_matrix(y_true, y_pred, title=None, xtickslabels=None, ytickslabels=None):
+def plot_confusion_matrix(y_true, y_pred, path=None, title=None, xtickslabels=None, ytickslabels=None):
 
     precision, recall, f1score, support = precision_recall_fscore_support(y_true, y_pred)
     display(Markdown(f'Precision {precision}, recall {recall}, f1score {f1score}, support {support}'))
@@ -54,8 +59,11 @@ def plot_confusion_matrix(y_true, y_pred, title=None, xtickslabels=None, yticksl
     if ytickslabels is not None:
         ax.set_yticklabels(ytickslabels)
 
-    plt.show()
-
+    if path is not None:
+        plt.savefig(path)
+        plt.close()
+    else:
+        plt.show()
 
 def plot_performance_per_timestep(model_metric_dict, last_train_time_step=34, last_time_step=49, model_std_dict=None,
                                   fontsize=23, labelsize=18, figsize=(20, 10),
