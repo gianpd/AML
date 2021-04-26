@@ -32,6 +32,7 @@ def plot_precision_recall_roc(y_test, y_prob, path=None):
         plt.savefig(f'{path}_precision_recall.png')
         skplt.metrics.plot_roc(y_test, probas)
         plt.savefig(f'{path}_roc.png')
+        plt.close()
     else:
         plt.show()
         skplt.metrics.plot_roc(y_test, probas)
