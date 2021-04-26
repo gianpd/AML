@@ -76,7 +76,7 @@ class Supervised:
         logger.info(f'avg test_f1_micro: {avg_f1_micro_test}')
         if mlflow.active_run():
             logger.info(f'{log_index} - starting mlflow run ...')
-            with mlflow.start_run(nested=True) as child_run:
+            with mlflow.start_run(nested=True, run_name=f'{self._model}_{self._cv}_{self._class_weight}_train') as child_run:
                 logger.info(f'run id: {child_run.info.run_id}')
                 mlflow.log_metrics(
                     {
@@ -119,7 +119,7 @@ class Supervised:
 
         self._train_cv()
         elapsed = time() - start
-        print(f'{self._model} train cv elapsed time: {elapsed} [s]')
+        logger.info(f'{self._model} train cv elapsed time: {elapsed} [s]')
 
 
     def predict(self, X_test):
@@ -161,14 +161,13 @@ class Supervised:
     def evaluate(self):
         log_index = 'evaluate>'
         if self.X_val is None and self.y_val is None:
-            print('Evaluation dataset not provided.')
-            pass
+            raise ValueError('Evaluation dataset not provided.')
         if hasattr(self._clf, 'predict'):
             self._clf.fit(self.X_train, self.y_train)
             y_pred = self._clf.predict(self.X_val)
             model_scores = calculate_model_score(self.y_val, y_pred)
             if mlflow.active_run():
-                with mlflow.start_run(nested=True) as child_run:
+                with mlflow.start_run(nested=True, run_name=f'{self._model}_{self._cv}_{self._class_weight}_eval') as child_run:
                     logger.info(f'{log_index} - starting mlflow Tracking ...')
                     mlflow.log_params(
                         {

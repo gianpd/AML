@@ -58,6 +58,7 @@ with mlflow.start_run() as run:
                 mlflow.log_artifact(f'{PLOTS_ROOT}/{m}_{cv}_{c_weight}_roc.png')
 
 
+plt.close('all')
 
 # AUTO TUNING
 for m in ['lgbm', 'rf']:
@@ -67,8 +68,12 @@ for m in ['lgbm', 'rf']:
         "metric":         'log_loss',
         "task":           'binary',
         "estimator_list": [m],
-        "log_file_name":  f'automl_{m}.log'
+        "log_file_name":  f'automl_{m}.log',
+        "log_training_metric": True,
+        "model_history": True,
+        "verbose": 0
     }
+
     mlflow.set_experiment(f'AutoML Tuning - Elliptic {m}')
     with mlflow.start_run() as run:
         automl.fit(X_train=X_train,
@@ -99,3 +104,5 @@ for m in ['lgbm', 'rf']:
         mlflow.log_artifact(f'{PLOTS_ROOT}/automl_{m}_confusion_matrix.png')
         mlflow.log_artifact(f'{PLOTS_ROOT}/automl_{m}_precision_recall.png')
         mlflow.log_artifact(f'{PLOTS_ROOT}/automl_{m}_roc.png')
+
+    plt.close('all')
