@@ -69,26 +69,7 @@ class Supervised:
         else:
             score = cross_validate(self._clf, self.X_train, self.y_train,
                                    cv=self._cv, scoring=scoring)
-
-        avg_f1_test = np.mean(score["test_f1"])
-        avg_f1_micro_test = np.mean(score["test_f1_micro"])
-        logger.info(f'avg test_f1: {avg_f1_test}')
-        logger.info(f'avg test_f1_micro: {avg_f1_micro_test}')
-        if mlflow.active_run():
-            logger.info(f'{log_index} - starting mlflow run ...')
-            with mlflow.start_run(nested=True, run_name=f'{self._model}_{self._cv}_{self._class_weight}_train') as child_run:
-                logger.info(f'run id: {child_run.info.run_id}')
-                mlflow.log_metrics(
-                    {
-                        "{}_test_avgF1".format(self._model):      avg_f1_test,
-                        "{}_test_avgF1Micro".format(self._model): avg_f1_micro_test,
-                    }
-                )
-                mlflow.log_params(score)
-                mlflow.log_params({'model':        self._model,
-                                   'cv':           self._cv,
-                                   'class_weight': self._class_weight,
-                                   })
+        return score
 
     def train_cv(self):
 
@@ -117,10 +98,10 @@ class Supervised:
         else:
             raise ValueError(f'Classifier {self._model} not available.')
 
-        self._train_cv()
+        score = self._train_cv()
         elapsed = time() - start
         logger.info(f'{self._model} train cv elapsed time: {elapsed} [s]')
-
+        return score
 
     def predict(self, X_test):
         '''Predict label from features
@@ -165,33 +146,7 @@ class Supervised:
         if hasattr(self._clf, 'predict'):
             self._clf.fit(self.X_train, self.y_train)
             y_pred = self._clf.predict(self.X_val)
-            model_scores = calculate_model_score(self.y_val, y_pred)
-            if mlflow.active_run():
-                with mlflow.start_run(nested=True, run_name=f'{self._model}_{self._cv}_{self._class_weight}_eval') as child_run:
-                    logger.info(f'{log_index} - starting mlflow Tracking ...')
-                    mlflow.log_params(
-                        {
-                            "{}_eval_accuracy".format(self._model):  model_scores['accuracy'],
-                            "{}_eval_f1".format(self._model):        model_scores['f1'],
-                            "{}_eval_microF1".format(self._model):   model_scores['f1_micro'],
-                            "{}_eval_macroF1".format(self._model):   model_scores['f1_macro'],
-                            "{}_eval_precision".format(self._model): model_scores['precision'],
-                            "{}_eval_recall".format(self._model):    model_scores['recall'],
-                            "{}_eval_rocAUC".format(self._model):    model_scores['roc_auc']
-                        })
-                    params = self._clf.get_params()
-                    for k, v in params.items():
-                        mlflow.log_params(
-                            {
-                                "{}_{}".format(self._model, k): v
-                            }
-                        )
-            else:
-                logger.info('no active mlflow run.')
-                logger.info(f'{self._model} - scores: {model_scores}')
-
             return y_pred
-
         else:
             raise ValueError('classifier not provided.')
 

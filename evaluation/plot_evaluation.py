@@ -40,7 +40,6 @@ def plot_precision_recall_roc(y_test, y_prob, path=None):
 
     return best_f1, best_threshold
 
-
 def plot_confusion_matrix(y_true, y_pred, path=None, title=None, xtickslabels=None, ytickslabels=None):
 
     precision, recall, f1score, support = precision_recall_fscore_support(y_true, y_pred)

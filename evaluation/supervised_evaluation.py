@@ -2,6 +2,7 @@ from train.supervised_train import Supervised
 
 from utils import *
 from plot_evaluation import *
+from model_performance import *
 
 from flaml import AutoML
 from flaml.data import get_output_from_log
@@ -29,13 +30,15 @@ X_train_df, X_test_df, y_train, y_test = run_elliptic_preprocessing_pipeline(LAS
 X_train = X_train_df.values
 X_test = X_test_df.values
 
-mlflow.set_experiment(f'Elliptic')
-with mlflow.start_run() as run:
-    for cv in CVs:
-        for class_weight in CLASS_WEIGHTS:
-            for m in CLFs:
+
+for cv in CVs:
+    for class_weight in CLASS_WEIGHTS:
+        c_weight = 1 if class_weight else 0
+        for m in CLFs:
+            mlflow.set_experiment(f'Elliptic - {m}_{c_weight}_{cv}')
+            with mlflow.start_run() as run:
                 print('### START')
-                print(f'cv: {cv} - class_weight: {class_weight} - model: {m}')
+                print(f'cv: {cv} - class_weight: {c_weight} - model: {m}')
                 clf = Supervised(
                     model=m,
                     task='binary',
@@ -45,18 +48,38 @@ with mlflow.start_run() as run:
                     y_val=y_test,
                     num_cv=cv,
                     class_weight=class_weight,
-                    seed=SEED
-                )
-                clf.train_cv()
+                    seed=SEED)
+                score = clf.train_cv()
+                mlflow.log_params({'model':        m,
+                                   'cv':           cv,
+                                   'class_weight': class_weight,
+                                   })
+                mlflow.log_params(score)
+
                 y_pred = clf.evaluate()
                 y_prob = clf.predict_proba(X_test)[:, 1]
-                c_weight = 1 if class_weight else 0
+                model_scores = calculate_model_score(y_test, y_pred)
+                mlflow.log_metrics({
+                    'accuracy': model_scores['accuracy'],
+                    'f1_micro': model_scores['f1_micro'],
+                    'f1_macro': model_scores['f1_macro'],
+                    'precision': model_scores['precision'],
+                    'recall': model_scores['recall'],
+                    'roc_auc': model_scores['roc_auc']
+                })
+
+                f1_timestep = calc_score_and_std_per_timestep(X_test_df, y_test, y_pred)
+                fig, ax = plt.subplots()
+                ax.plot(range(LAST_TRAIN_TIMESTEP + 1, LAST_TIMESTEP + 1), f1_timestep)
+                ax.set_xlabel('timestep')
+                ax.set_ylabel('f1')
+                mlflow.log_figure(fig, f'f1_timestep_{m}.png')
+
                 plot_confusion_matrix(y_test, y_pred, path=f'{PLOTS_ROOT}/{m}_{cv}_{c_weight}_confusion_matrix.png')
                 plot_precision_recall_roc(y_test, y_prob, path=f'{PLOTS_ROOT}/{m}_{cv}_{c_weight}')
                 mlflow.log_artifact(f'{PLOTS_ROOT}/{m}_{cv}_{c_weight}_confusion_matrix.png')
                 mlflow.log_artifact(f'{PLOTS_ROOT}/{m}_{cv}_{c_weight}_precision_recall.png')
                 mlflow.log_artifact(f'{PLOTS_ROOT}/{m}_{cv}_{c_weight}_roc.png')
-
 
 plt.close('all')
 
@@ -64,14 +87,14 @@ plt.close('all')
 for m in ['lgbm', 'rf']:
     automl = AutoML()
     settings = {
-        "time_budget":    TIME_BUDGET,
-        "metric":         'log_loss',
-        "task":           'binary',
-        "estimator_list": [m],
-        "log_file_name":  f'automl_{m}.log',
+        "time_budget":         TIME_BUDGET,
+        "metric":              'log_loss',
+        "task":                'binary',
+        "estimator_list":      [m],
+        "log_file_name":       f'automl_{m}.log',
         "log_training_metric": True,
-        "model_history": True,
-        "verbose": 0
+        "model_history":       True,
+        "verbose":             1
     }
 
     mlflow.set_experiment(f'AutoML Tuning - Elliptic {m}')
@@ -99,6 +122,24 @@ for m in ['lgbm', 'rf']:
 
         y_pred = automl.predict(X_test)
         y_prob = automl.predict_proba(X_test)[:, 1]
+
+        model_scores = calculate_model_score(y_test, y_pred)
+        mlflow.log_metrics({
+            'accuracy':  model_scores['accuracy'],
+            'f1_micro':  model_scores['f1_micro'],
+            'f1_macro':  model_scores['f1_macro'],
+            'precision': model_scores['precision'],
+            'recall':    model_scores['recall'],
+            'roc_auc':   model_scores['roc_auc']
+        })
+
+        f1_timestep = calc_score_and_std_per_timestep(X_test_df, y_test, y_pred)
+        fig, ax = plt.subplots()
+        ax.plot(range(LAST_TRAIN_TIMESTEP + 1, LAST_TIMESTEP + 1), f1_timestep)
+        ax.set_xlabel('timestep')
+        ax.set_ylabel('f1')
+        mlflow.log_figure(fig, f'f1_timestep_{m}.png')
+
         plot_confusion_matrix(y_test, y_pred, path=f'{PLOTS_ROOT}/automl_{m}_confusion_matrix.png')
         plot_precision_recall_roc(y_test, y_prob, path=f'{PLOTS_ROOT}/automl_{m}')
         mlflow.log_artifact(f'{PLOTS_ROOT}/automl_{m}_confusion_matrix.png')

@@ -46,7 +46,5 @@ def calc_score_and_std_per_timestep(X_test_df, y_test, y_pred, aggregated_timest
         y_pred_ts = [y_pred[i] for i in time_step_idx]
         model_scores.append(calculate_model_score(y_true_ts.astype('int'), y_pred_ts, metric))
 
-    avg_f1 = np.array([np.mean(model_scores)])
-    std = np.array([np.std(model_scores)])
-
-    return avg_f1, std
+    f1_timestep = np.array(model_scores)
+    return f1_timestep
