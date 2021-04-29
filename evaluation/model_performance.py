@@ -5,6 +5,7 @@ import numpy as np
 
 def calculate_model_score(y_true, y_pred, metric=None):
     metric_dict = {'accuracy': accuracy_score(y_true, y_pred), 'f1': f1_score(y_true, y_pred, pos_label=1),
+                   'f1': f1_score(y_true, y_pred),
                    'f1_micro': f1_score(y_true, y_pred, average='micro'),
                    'f1_macro': f1_score(y_true, y_pred, average='macro'),
                    'precision': precision_score(y_true, y_pred),

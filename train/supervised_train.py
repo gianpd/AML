@@ -77,12 +77,21 @@ class Supervised:
 
         if self._model == 'rf':
             if self._task in ('binary', 'multiclass'):
-                self._clf = RandomForestClassifier()
+                self._clf = RandomForestClassifier(n_estimators=451,
+                                                   max_features=0.35910831985255043,
+                                                   criterion='entropy')
             else:
                 raise ValueError('regression task not yet implemented.')
         elif self._model == 'lgbm':
             if self._task in ('binary', 'multiclass'):
-                self._clf = LGBMClassifier()
+                self._clf = LGBMClassifier(n_estimators=350,
+                                           num_leaves=17,
+                                           min_child_samples=29,
+                                           learning_rate=0.031188616474561084,
+                                           subsample=1,
+                                           colsample_bytree=0.3774966956988639,
+                                           reg_alpha=0.0019504606411800377,
+                                           reg_lambda=14.065658041501804)
             else:
                 raise ValueError('regression task not yet implemented.')
         elif self._model == 'lr':
@@ -139,13 +148,11 @@ class Supervised:
             X_test = self._preprocess(X_test)
             return self._clf.predict_proba(X_test)
 
-    def evaluate(self):
+    def evaluate(self, X_test):
         log_index = 'evaluate>'
-        if self.X_val is None and self.y_val is None:
-            raise ValueError('Evaluation dataset not provided.')
         if hasattr(self._clf, 'predict'):
             self._clf.fit(self.X_train, self.y_train)
-            y_pred = self._clf.predict(self.X_val)
+            y_pred = self._clf.predict(X_test)
             return y_pred
         else:
             raise ValueError('classifier not provided.')
