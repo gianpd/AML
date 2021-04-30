@@ -15,7 +15,7 @@ from sklearn.utils.class_weight import compute_class_weight
 
 # feature/model selection
 from sklearn.decomposition import PCA
-from sklearn.pipeline import Pipeline, FeatureUnion
+from sklearn.pipeline import make_pipeline, FeatureUnion
 from sklearn.model_selection import cross_validate
 
 import mlflow
@@ -26,6 +26,7 @@ import logging
 logging.basicConfig(stream=sys.stdout, format='',
                 level=logging.INFO, datefmt=None)
 logger = logging.getLogger('supervised_train')
+
 
 class Supervised:
 
@@ -63,7 +64,8 @@ class Supervised:
         scoring = ['f1', 'f1_micro']
 
         if self._class_weight:
-            weight = self.get_balanced_weights(self.y_train)
+            weight = self.get_weights(self.y_train)
+            #self._clf = make_pipeline(PCA(n_components=85), self._clf)
             score = cross_validate(self._clf, self.X_train, self.y_train,
                                    cv=self._cv, scoring=scoring, fit_params={'sample_weight': weight})
         else:
@@ -77,8 +79,9 @@ class Supervised:
 
         if self._model == 'rf':
             if self._task in ('binary', 'multiclass'):
-                self._clf = RandomForestClassifier(n_estimators=451,
-                                                   max_features=0.35910831985255043,
+                self._clf = RandomForestClassifier(n_estimators=13,
+                                                   class_weight={0: 0.3, 1: 0.7},
+                                                   max_features=0.8730950943488909,
                                                    criterion='entropy')
             else:
                 raise ValueError('regression task not yet implemented.')
@@ -86,7 +89,9 @@ class Supervised:
             if self._task in ('binary', 'multiclass'):
                 self._clf = LGBMClassifier(n_estimators=350,
                                            num_leaves=17,
+                                           class_weight={0: 0.3, 1: 0.7},
                                            min_child_samples=29,
+                                           objective='binary',
                                            learning_rate=0.031188616474561084,
                                            subsample=1,
                                            colsample_bytree=0.3774966956988639,
@@ -151,13 +156,34 @@ class Supervised:
     def evaluate(self, X_test):
         log_index = 'evaluate>'
         if hasattr(self._clf, 'predict'):
+            #self._clf = make_pipeline(PCA(n_components=75), self._clf)
             self._clf.fit(self.X_train, self.y_train)
             y_pred = self._clf.predict(X_test)
             return y_pred
         else:
             raise ValueError('classifier not provided.')
 
-    def get_balanced_weights(self, labels):
-        class_weight = compute_class_weight('balanced', classes=np.unique(labels), y=labels)
+    def get_weights(self, labels):
+        class_weight = compute_class_weight({0: 0.3, 1: 0.7}, classes=np.unique(labels), y=labels)
         weights = labels.map(lambda x: class_weight[0] if not x else class_weight[1])
         return weights
+
+if __name__ == '__main__':
+
+    from utils import run_elliptic_preprocessing_pipeline
+
+    X_train_df, X_test_df, y_train, y_test = run_elliptic_preprocessing_pipeline(34, 49)
+
+    X_train = X_train_df.values
+    X_test = X_test_df.values
+
+    clf = Supervised(
+        model='rf',
+        task='binary',
+        X_train=X_train,
+        y_train=y_train,
+        num_cv=5
+    )
+
+    w = clf.get_weights(y_train)
+    print(w)

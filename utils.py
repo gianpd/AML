@@ -100,12 +100,12 @@ def run_elliptic_preprocessing_pipeline(last_train_time_step, last_time_step, on
 
     return X_train_df, X_test_df, y_train, y_test
 
-def split_train_val_eval(last_train_time_step, last_time_step, only_labeled=True, drop_node_id=True):
 
+def split_train_val_eval(last_train_time_step, last_time_step, only_labeled=True, drop_node_id=True):
     X_train_df, X_test_df, y_train_s, y_test = run_elliptic_preprocessing_pipeline(last_train_time_step,
-                                                                                 last_time_step,
-                                                                                 only_labeled,
-                                                                                 drop_node_id)
+                                                                                   last_time_step,
+                                                                                   only_labeled,
+                                                                                   drop_node_id)
 
     nrows, ndim = X_train_df.shape
     step = int(nrows) * 0.7
@@ -115,7 +115,4 @@ def split_train_val_eval(last_train_time_step, last_time_step, only_labeled=True
     X_val = X_train_df.loc[step + 1:]
     y_val = y_train_s.loc[step + 1:]
 
-    X_test = X_test_df
-    y_test = y_test
-
-    return X_train, X_val, X_test, y_train, y_val, y_test
+    return X_train, X_val, X_test_df, y_train, y_val, y_test
