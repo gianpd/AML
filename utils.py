@@ -2,7 +2,10 @@ import os
 
 ROOT_DIR = os.path.join(os.getcwd(), os.path.pardir)
 
+import numpy as np
 import pandas as pd
+
+from sklearn.utils.class_weight import compute_class_weight
 
 
 def setup_train_test_idx(X, last_train_time_step, last_time_step, aggregated_timestamp_column='time_step'):
@@ -91,6 +94,10 @@ def load_elliptic_data(only_labeled=True, drop_node_id=True):
 
     return X, y
 
+def get_unbalanced_weights(labels, weight1, weight2):
+    class_weight = compute_class_weight({0: weight1, 1: weight2}, classes=np.unique(labels), y=labels)
+    weights = labels.map(lambda x: class_weight[0] if not x else class_weight[1])
+    return weights
 
 def run_elliptic_preprocessing_pipeline(last_train_time_step, last_time_step, only_labeled=True,
                                         drop_node_id=True):

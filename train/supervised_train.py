@@ -5,6 +5,7 @@ from time import time
 from typing import Optional, Union, List, Callable
 
 # supervised baseline
+import numpy as np
 from xgboost import XGBClassifier
 from lightgbm import LGBMClassifier
 
@@ -64,7 +65,7 @@ class Supervised:
         scoring = ['f1', 'f1_micro']
 
         if self._class_weight:
-            weight = self.get_weights(self.y_train)
+            weight = self.get_unbalanced_weights(self.y_train, 0.3, 0.7)
             #self._clf = make_pipeline(PCA(n_components=85), self._clf)
             score = cross_validate(self._clf, self.X_train, self.y_train,
                                    cv=self._cv, scoring=scoring, fit_params={'sample_weight': weight})
@@ -163,8 +164,13 @@ class Supervised:
         else:
             raise ValueError('classifier not provided.')
 
-    def get_weights(self, labels):
-        class_weight = compute_class_weight({0: 0.3, 1: 0.7}, classes=np.unique(labels), y=labels)
+    def get_balanced_weights(self, labels):
+        class_weight = compute_class_weight(classes=np.unique(labels), y=labels)
+        weights = labels.map(lambda x: class_weight[0] if not x else class_weight[1])
+        return weights
+
+    def get_unbalanced_weights(self, labels, weight1, weight2):
+        class_weight = compute_class_weight({0: weight1, 1: weight2}, classes=np.unique(labels), y=labels)
         weights = labels.map(lambda x: class_weight[0] if not x else class_weight[1])
         return weights
 
