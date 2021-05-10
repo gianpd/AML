@@ -16,8 +16,8 @@ LAST_TRAIN_TIMESTEP = 34
 LAST_TIMESTEP = 49
 
 SEED = 456
-CVs = [15]
-CLASS_WEIGHTS = [False]
+CVs = [15, 10, 5]
+CLASS_WEIGHTS = [False, True]
 CLFs = ['lgbm', 'rf']
 
 # auto ml parameters
@@ -42,7 +42,7 @@ with mlflow.start_run():
         for class_weight in CLASS_WEIGHTS:
             c_weight = '0307' if class_weight else 0
             for m in CLFs:
-                mlflow.sklearn.autolog()
+                mlflow.sklearn.autolog() if m == 'RF' else mlflow.lightgbm.autolog()
                 with mlflow.start_run(nested=True, run_name=f'{m}-{cv}-{c_weight}') as run:
                     print('### START')
                     print(f'cv: {cv} - class_weight: {c_weight} - model: {m}')

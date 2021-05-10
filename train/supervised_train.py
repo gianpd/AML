@@ -80,8 +80,8 @@ class Supervised:
 
         if self._model == 'rf':
             if self._task in ('binary', 'multiclass'):
-                self._clf = RandomForestClassifier(n_estimators=13,
-                                                   class_weight={0: 0.3, 1: 0.7},
+                self._clf = RandomForestClassifier(n_estimators=150,
+                                                   #class_weight={0: 0.3, 1: 0.7},
                                                    max_features=0.8730950943488909,
                                                    criterion='entropy')
             else:
