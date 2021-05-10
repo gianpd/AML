@@ -11,7 +11,7 @@ from plot_evaluation import *
 LAST_TRAIN_TIMESTEP = 34
 LAST_TIMESTEP = 49
 
-TIME_BUDGET = 1800
+TIME_BUDGET = 3600
 PLOTS_ROOT = '../plots'
 
 X_train, X_val, X_test, y_train, y_val, y_test = split_train_val_eval(LAST_TRAIN_TIMESTEP, LAST_TIMESTEP)
@@ -24,7 +24,6 @@ with mlflow.start_run() as run:
         automl = AutoML()
         settings = {
             "time_budget":         TIME_BUDGET,
-            "metric":              'micro_f1',
             "task":                'binary',
             "estimator_list":      [m],
             "log_file_name":       f'automl_{m}.log',
@@ -32,12 +31,15 @@ with mlflow.start_run() as run:
             "model_history":       True,
             "verbose":             1
         }
+        mlflow.lightgbm.autolog() if m == 'lgbm' else mlflow.sklearn.autolog()
         with mlflow.start_run(nested=True, run_name=f'Automl-{m}'):
             mlflow.log_param('TIME_BUDGET', TIME_BUDGET)
             mlflow.log_params(settings)
 
             automl.fit(X_train=X_train,
                        y_train=y_train,
+                       X_val=X_val,
+                       y_val=y_val,
                        **settings)
             print('### AUTO ML')
             print('Best hyperparmeter config:', automl.best_config)
