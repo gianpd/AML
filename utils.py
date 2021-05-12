@@ -115,7 +115,7 @@ def split_train_val_eval(last_train_time_step, last_time_step, only_labeled=True
                                                                                    drop_node_id)
 
     nrows, ndim = X_train_df.shape
-    step = int(nrows) * 0.7
+    step = int(nrows) * 0.8
     X_train = X_train_df.loc[:step]
     y_train = y_train_s.loc[:step]
 

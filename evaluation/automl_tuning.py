@@ -11,22 +11,27 @@ from plot_evaluation import *
 LAST_TRAIN_TIMESTEP = 34
 LAST_TIMESTEP = 49
 
-TIME_BUDGET = 3600
+TIME_BUDGET = 1800
 PLOTS_ROOT = '../plots'
 
-X_train, X_val, X_test, y_train, y_val, y_test = split_train_val_eval(LAST_TRAIN_TIMESTEP, LAST_TIMESTEP)
+X_train_df, X_test_df, y_train, y_test = run_elliptic_preprocessing_pipeline(LAST_TRAIN_TIMESTEP,
+                                                                               LAST_TIMESTEP)
 
+X_train = X_train_df.values
+X_test = X_test_df.values
 
 #AUTO TUNING
 mlflow.set_experiment(f'AutoML Tuning - Elliptic')
 with mlflow.start_run() as run:
-    for m in ['lgbm', 'rf']:
+    for m in ['rf']:
         automl = AutoML()
         settings = {
             "time_budget":         TIME_BUDGET,
             "task":                'binary',
             "estimator_list":      [m],
             "log_file_name":       f'automl_{m}.log',
+            "eval_method":        'cv',
+            "n_splits":            10,
             "log_training_metric": True,
             "model_history":       True,
             "verbose":             1
@@ -38,8 +43,9 @@ with mlflow.start_run() as run:
 
             automl.fit(X_train=X_train,
                        y_train=y_train,
-                       X_val=X_val,
-                       y_val=y_val,
+                       X_val=X_test,
+                       y_val=y_test,
+
                        **settings)
             print('### AUTO ML')
             print('Best hyperparmeter config:', automl.best_config)
@@ -71,7 +77,7 @@ with mlflow.start_run() as run:
                 f'roc_auc':   model_scores['roc_auc']
             })
 
-            f1_timestep = calc_score_and_std_per_timestep(X_test, y_test, y_pred)
+            f1_timestep = calc_score_and_std_per_timestep(X_test_df, y_test, y_pred)
             fig, ax = plt.subplots()
             ax.plot(range(LAST_TRAIN_TIMESTEP + 1, LAST_TIMESTEP + 1), f1_timestep)
             ax.set_xlabel('timestep')

@@ -38,6 +38,7 @@ def calc_model_performance_over_time(X_test_df, y_test,
 
 
 def calc_score_and_std_per_timestep(X_test_df, y_test, y_pred, aggregated_timestamp_column='time_step', metric= 'f1'):
+
     last_train_time_step = min(X_test_df['time_step']) - 1
     last_time_step = max(X_test_df['time_step'])
     model_scores = []

@@ -16,19 +16,17 @@ LAST_TRAIN_TIMESTEP = 34
 LAST_TIMESTEP = 49
 
 SEED = 456
-CVs = [15, 10, 5]
-CLASS_WEIGHTS = [False, True]
-CLFs = ['lgbm', 'rf']
+CVs = [10]
+CLASS_WEIGHTS = [True]
+CLFs = ['lr', 'xgboost']
 
-# auto ml parameters
-TIME_BUDGET = 60 * 15
 
 X_train_df, X_test_df, y_train, y_test = run_elliptic_preprocessing_pipeline(LAST_TRAIN_TIMESTEP, LAST_TIMESTEP)
 
 X_train = X_train_df.values
 X_test = X_test_df.values
 
-mlflow.set_experiment(f'Elliptic - with Tuning')
+mlflow.set_experiment(f'Elliptic')
 with mlflow.start_run():
     mlflow.log_params({
         'LAST_TRAIN_TIMESTEP': LAST_TRAIN_TIMESTEP,

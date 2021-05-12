@@ -53,7 +53,7 @@ with mlflow.start_run(run_name='TimeSeriesSplits'):
         mlflow.sklearn.autolog()
         run_name = f'{EXPERIMENT_NAME}_fold_{fold_n}'
         with mlflow.start_run(run_name=run_name, nested=True):
-            model = RandomForestClassifier(n_estimators=150,
+            model = RandomForestClassifier(n_estimators=13,
                                            #class_weight={0: 0.3, 1: 0.7},
                                            max_features=0.8730950943488909,
                                            criterion='entropy')
@@ -70,5 +70,5 @@ with mlflow.start_run(run_name='TimeSeriesSplits'):
     # Evaluation
     clf = model.fit(X_train_all, y_train_all)
     y_probas = clf.predict(X_test)
-    run_params['nonce'] = 'EVALUATION'
+    run_params['nonce'] = f'{fold_n} - EVALUATION'
     f1, micro_f1 = log_binary_mlflow(run_params=run_params, y_true=y_test, y_probas=y_probas)
