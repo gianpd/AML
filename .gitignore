@@ -1,6 +1,12 @@
 # Project
 /.vs
 .vscode
+/.idea
+
+# large files
+*.csv
+*.parquet
+/data
 
 # Log files
 *.log

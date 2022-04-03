@@ -34,9 +34,9 @@ def train_test_split(X, y, train_test_idx):
 
 
 def import_elliptic_data_from_csvs():
-    df_classes = pd.read_csv(os.path.join(ROOT_DIR, 'data\elliptic\elliptic_txs_classes.csv'))
-    df_edges = pd.read_csv(os.path.join(ROOT_DIR, 'data\elliptic\elliptic_txs_edgelist.csv'))
-    df_features = pd.read_csv(os.path.join(ROOT_DIR, 'data\elliptic\elliptic_txs_features.csv'), header=None)
+    df_classes = pd.read_csv(os.path.join(ROOT_DIR, 'data/elliptic_txs_classes.csv'))
+    df_edges = pd.read_csv(os.path.join(ROOT_DIR, 'data/elliptic_txs_edgelist.csv'))
+    df_features = pd.read_csv(os.path.join(ROOT_DIR, 'data/elliptic_txs_features.csv'), header=None)
     return df_classes, df_edges, df_features
 
 
@@ -74,13 +74,13 @@ def combine_dataframes(df_classes, df_features, only_labeled=True):
 
 
 def import_elliptic_edgelist():
-    df_classes, df_edges, df_features = import_and_clean_elliptic_data()
+    _, df_edges, df_features = import_and_clean_elliptic_data()
     df_edgelist = df_edges.merge(df_features[['id', 'time_step']], left_on='txId1', right_on='id')
     return df_edgelist
 
 
 def load_elliptic_data(only_labeled=True, drop_node_id=True):
-    df_classes, df_edges, df_features = import_elliptic_data_from_csvs()
+    df_classes, _, df_features = import_elliptic_data_from_csvs()
     df_features = rename_features(df_features)
     df_classes = rename_classes(df_classes)
     df_combined = combine_dataframes(df_classes, df_features, only_labeled)

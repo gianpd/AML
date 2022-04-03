@@ -67,21 +67,27 @@ def plot_confusion_matrix(y_true, y_pred, path=None, title=None, xtickslabels=No
 
 def plot_performance_per_timestep(model_metric_dict, last_train_time_step=34, last_time_step=49, model_std_dict=None,
                                   fontsize=23, labelsize=18, figsize=(20, 10),
-                                  linestyle=['solid', "dotted", 'dashed'], linecolor=["green", "orange", "red"],
+                                  markers=['^', '<', 'p', 'o'], 
+                                  linestyles=['f', 'f', 'f', 'f'],
+                                  linecolor=["green", "orange", "red", 'blue'],
                                   barcolor='lightgrey', baralpha=0.3, linewidth=1.5, savefig_path=None):
 
     occ = calc_occurences_per_timestep()
     illicit_per_timestep = occ[(occ['class'] == 1) & (occ['time_step'] > 34)]
+    plt.style.use('grayscale')
 
     timesteps = illicit_per_timestep['time_step'].unique()
     fig, ax1 = plt.subplots(figsize=figsize)
     ax2 = ax1.twinx()
 
+    num_curves = len(list(model_metric_dict.keys()))
+    markers = markers if len(markers) ==  num_curves else markers[:num_curves]
     i = 0
     for key, values in model_metric_dict.items():
         if key != "XGBoost":
             key = key.lower()
-        ax1.plot(timesteps, values, label=key, linestyle=linestyle[i], color=linecolor[i], linewidth=linewidth)
+        values = values[0].flatten()
+        ax1.plot(timesteps, values, label=key, linestyle=linestyles[i], marker=markers[i], color=linecolor[i], linewidth=linewidth)
         if model_std_dict != None:
             ax1.fill_between(timesteps, values + model_std_dict[key], values - model_std_dict[key],
                              facecolor='lightgrey', alpha=0.5)
