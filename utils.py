@@ -5,6 +5,8 @@ ROOT_DIR = os.path.join(os.getcwd(), os.path.pardir)
 import numpy as np
 import pandas as pd
 
+from typing import List
+
 from sklearn.utils.class_weight import compute_class_weight
 
 
@@ -33,7 +35,7 @@ def train_test_split(X, y, train_test_idx):
     return X_train_df, X_test_df, y_train, y_test
 
 
-def import_elliptic_data_from_csvs():
+def import_elliptic_data_from_csvs(dataset_path: str) -> List[pd.DataFrame]:
     df_classes = pd.read_csv(os.path.join(ROOT_DIR, 'data/elliptic_bitcoin_dataset/elliptic_txs_classes.csv'))
     df_edges = pd.read_csv(os.path.join(ROOT_DIR, 'data/elliptic_bitcoin_dataset/elliptic_txs_edgelist.csv'))
     df_features = pd.read_csv(os.path.join(ROOT_DIR, 'data/elliptic_bitcoin_dataset/elliptic_txs_features.csv'), header=None)
