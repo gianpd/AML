@@ -34,9 +34,9 @@ def train_test_split(X, y, train_test_idx):
 
 
 def import_elliptic_data_from_csvs():
-    df_classes = pd.read_csv(os.path.join(ROOT_DIR, 'data/elliptic_txs_classes.csv'))
-    df_edges = pd.read_csv(os.path.join(ROOT_DIR, 'data/elliptic_txs_edgelist.csv'))
-    df_features = pd.read_csv(os.path.join(ROOT_DIR, 'data/elliptic_txs_features.csv'), header=None)
+    df_classes = pd.read_csv(os.path.join(ROOT_DIR, 'data/elliptic_bitcoin_dataset/elliptic_txs_classes.csv'))
+    df_edges = pd.read_csv(os.path.join(ROOT_DIR, 'data/elliptic_bitcoin_dataset/elliptic_txs_edgelist.csv'))
+    df_features = pd.read_csv(os.path.join(ROOT_DIR, 'data/elliptic_bitcoin_dataset/elliptic_txs_features.csv'), header=None)
     return df_classes, df_edges, df_features
 
 
