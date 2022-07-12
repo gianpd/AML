@@ -81,8 +81,8 @@ def import_elliptic_edgelist():
     return df_edgelist
 
 
-def load_elliptic_data(only_labeled=True, drop_node_id=True):
-    df_classes, _, df_features = import_elliptic_data_from_csvs()
+def load_elliptic_data(root_dataset_path: str, only_labeled=True, drop_node_id=True):
+    df_classes, _, df_features = import_elliptic_data_from_csvs(root_dataset_path)
     df_features = rename_features(df_features)
     df_classes = rename_classes(df_classes)
     df_combined = combine_dataframes(df_classes, df_features, only_labeled)
@@ -101,17 +101,17 @@ def get_unbalanced_weights(labels, weight1, weight2):
     weights = labels.map(lambda x: class_weight[0] if not x else class_weight[1])
     return weights
 
-def run_elliptic_preprocessing_pipeline(last_train_time_step, last_time_step, only_labeled=True,
+def run_elliptic_preprocessing_pipeline(root_dataset_path: str, last_train_time_step, last_time_step, only_labeled=True,
                                         drop_node_id=True):
-    X, y = load_elliptic_data(only_labeled, drop_node_id)
+    X, y = load_elliptic_data(root_dataset_path, only_labeled, drop_node_id)
     train_test_idx = setup_train_test_idx(X, last_train_time_step, last_time_step)
     X_train_df, X_test_df, y_train, y_test = train_test_split(X, y, train_test_idx)
 
     return X_train_df, X_test_df, y_train, y_test
 
 
-def split_train_val_eval(last_train_time_step, last_time_step, only_labeled=True, drop_node_id=True):
-    X_train_df, X_test_df, y_train_s, y_test = run_elliptic_preprocessing_pipeline(last_train_time_step,
+def split_train_val_eval(root_dataset_path: str, last_train_time_step, last_time_step, only_labeled=True, drop_node_id=True):
+    X_train_df, X_test_df, y_train_s, y_test = run_elliptic_preprocessing_pipeline(root_dataset_path, last_train_time_step,
                                                                                    last_time_step,
                                                                                    only_labeled,
                                                                                    drop_node_id)
