@@ -15,13 +15,10 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.utils.class_weight import compute_class_weight
 
 # feature/model selection
-from sklearn.decomposition import PCA
-from sklearn.pipeline import make_pipeline, FeatureUnion
+# from sklearn.decomposition import PCA
+# from sklearn.pipeline import make_pipeline, FeatureUnion
 from sklearn.model_selection import cross_validate
-
-import mlflow
-
-from evaluation.model_performance import *
+from AML.evaluation.model_performance import *
 
 import logging
 logging.basicConfig(stream=sys.stdout, format='',
