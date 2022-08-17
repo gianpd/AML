@@ -94,7 +94,7 @@ def plot_performance_per_timestep(root_dataset_path, model_metric_dict, last_tra
     for key, values in model_metric_dict.items():
         if key != "XGBoost":
             key = key.lower()
-        values = values[0].flatten()
+        # values = values[0].flatten()
         ax1.plot(timesteps, values, label=key, linestyle=linestyles[i], marker=markers[i], color=linecolor[i], linewidth=linewidth)
         if model_std_dict != None:
             ax1.fill_between(timesteps, values + model_std_dict[key], values - model_std_dict[key],

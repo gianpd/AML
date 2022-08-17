@@ -38,18 +38,17 @@ def calc_model_performance_over_time(X_test_df, y_test,
     return model_scores_dict
 
 
-
 def calc_score_and_std_per_timestep(X_test_df, y_test, y_preds: List[np.array], aggregated_timestamp_column='time_step', metric= 'f1'):
-    
     last_train_time_step = min(X_test_df['time_step']) - 1
     last_time_step = max(X_test_df['time_step'])
-    model_scores = []
+    scores = []
     for y_pred in y_preds:
+        inner_scores = []
         for time_step in range(last_train_time_step + 1, last_time_step + 1):
             time_step_idx = np.flatnonzero(X_test_df[aggregated_timestamp_column] == time_step)
             y_true_ts = y_test.iloc[time_step_idx]
             y_pred_ts = [y_pred[i] for i in time_step_idx]
-            model_scores.append(calculate_model_score(y_true_ts.astype('int'), y_pred_ts, metric))
-
-    f1_timestep = np.array(model_scores)
-    return f1_timestep
+            inner_scores.append(calculate_model_score(y_true_ts.astype('int'), y_pred_ts, metric))
+        scores.append(inner_scores)
+    final_scores = np.asarray(scores)
+    return np.mean(final_scores, axis=0), np.std(final_scores, axis=0)
