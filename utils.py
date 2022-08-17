@@ -42,8 +42,7 @@ def import_elliptic_data_from_csvs(root_dataset_path: str) -> List[pd.DataFrame]
     return df_classes, df_edges, df_features
 
 
-def calc_occurences_per_timestep():
-    X, y = load_elliptic_data()
+def calc_occurences_per_timestep(X, y):
     X['class'] = y
     occ = X.groupby(['time_step', 'class']).size().to_frame(name='occurences').reset_index()
     return occ
