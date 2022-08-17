@@ -1,3 +1,5 @@
+import os
+
 from IPython.display import display, Markdown
 
 import numpy as np
@@ -9,6 +11,11 @@ import scikitplot as skplt
 import matplotlib.pyplot as plt
 
 from AML.utils import calc_occurences_per_timestep
+from ..utils import load_elliptic_data
+
+
+ROOT_DIR = os.path.join(os.pardir, __file__)
+
 
 def plot_precision_recall_roc(y_test, y_prob, path=None):
 
@@ -65,13 +72,14 @@ def plot_confusion_matrix(y_true, y_pred, path=None, title=None, xtickslabels=No
     else:
         plt.show()
 
-def plot_performance_per_timestep(X, y, model_metric_dict, last_train_time_step=34, last_time_step=49, model_std_dict=None,
+def plot_performance_per_timestep(root_dataset_path, model_metric_dict, last_train_time_step=34, last_time_step=49, model_std_dict=None,
                                   fontsize=23, labelsize=18, figsize=(20, 10),
                                   markers=['^', '<', 'p', 'o'], 
                                   linestyles=['f', 'f', 'f', 'f'],
                                   linecolor=["green", "orange", "red", 'blue'],
                                   barcolor='lightgrey', baralpha=0.3, linewidth=1.5, savefig_path=None):
 
+    X, y = load_elliptic_data(root_dataset_path=root_dataset_path)
     occ = calc_occurences_per_timestep(X, y)
     illicit_per_timestep = occ[(occ['class'] == 1) & (occ['time_step'] > 34)]
     plt.style.use('grayscale')
