@@ -1,3 +1,5 @@
+from typing import List
+
 import pandas as pd
 from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score, roc_auc_score
 import numpy as np
@@ -37,16 +39,17 @@ def calc_model_performance_over_time(X_test_df, y_test,
 
 
 
-def calc_score_and_std_per_timestep(X_test_df, y_test, y_pred, aggregated_timestamp_column='time_step', metric= 'f1'):
-
+def calc_score_and_std_per_timestep(X_test_df, y_test, y_preds: List[np.array], aggregated_timestamp_column='time_step', metric= 'f1'):
+    
     last_train_time_step = min(X_test_df['time_step']) - 1
     last_time_step = max(X_test_df['time_step'])
     model_scores = []
-    for time_step in range(last_train_time_step + 1, last_time_step + 1):
-        time_step_idx = np.flatnonzero(X_test_df[aggregated_timestamp_column] == time_step)
-        y_true_ts = y_test.iloc[time_step_idx]
-        y_pred_ts = [y_pred[i] for i in time_step_idx]
-        model_scores.append(calculate_model_score(y_true_ts.astype('int'), y_pred_ts, metric))
+    for y_pred in y_preds:
+        for time_step in range(last_train_time_step + 1, last_time_step + 1):
+            time_step_idx = np.flatnonzero(X_test_df[aggregated_timestamp_column] == time_step)
+            y_true_ts = y_test.iloc[time_step_idx]
+            y_pred_ts = [y_pred[i] for i in time_step_idx]
+            model_scores.append(calculate_model_score(y_true_ts.astype('int'), y_pred_ts, metric))
 
     f1_timestep = np.array(model_scores)
     return f1_timestep
